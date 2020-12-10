@@ -1,0 +1,72 @@
+智能指针：普通指针封装成栈对象
+https://www.cnblogs.com/WindSun/p/11444429.html
+https://blog.csdn.net/lizhentao0707/article/details/81156384
+
+auto_ptr:
+存在潜在的内存崩溃(C++11已被抛弃)
+auto_ptr<string> p1 (new string ("I reigned lonely as a cloud.")); 
+auto_ptr<string> p2; 
+p2 = p1; //auto_ptr不会报错.
+
+
+unique_ptr:
+1.同一时间只有一个智能指针可以指向该对象。
+2.允许临时右值的赋值操作，正常赋值操作不允许。
+3.只允许std::move操作赋值。
+4.boost库的boost::scoped_ptr也是一个独占性智能指针，
+但是它不允许转移所有权，从始而终都只对一个资源负责，它更安全谨慎，但是应用的范围也更狭窄。
+示例：
+unique_ptr<string> pu1(new string ("hello world")); 
+unique_ptr<string> pu2; 
+pu2 = pu1;                                      // #1 不允许
+unique_ptr<string> pu3; 
+pu3 = unique_ptr<string>(new string ("You"));   // #2 允许
+
+shared_ptr:
+1.多个智能指针可以拥有相同的对象。
+2.新增加1，过期减1.
+3.use_count()来查看资源的所有者个数
+4.常用类函数
+use_count 返回引用计数的个数
+unique 返回是否是独占所有权( use_count 为 1)
+swap 交换两个 shared_ptr 对象(即交换所拥有的对象)
+reset 放弃内部对象的所有权或拥有对象的变更, 会引起原有对象的引用计数的减少
+get 返回内部对象(指针), 由于已经重载了()方法, 因此和直接使用对象是一样的
+当两个对象相互使用一个shared_ptr成员变量指向对方，会造成循环引用，使引用计数失效，从而导致内存泄漏。
+示例：
+int main()
+{
+	string *s1 = new string("s1");
+
+	shared_ptr<string> ps1(s1);
+	shared_ptr<string> ps2;
+	ps2 = ps1;
+
+	cout << ps1.use_count()<<endl;	//2
+	cout<<ps2.use_count()<<endl;	//2
+	cout << ps1.unique()<<endl;	//0
+
+	string *s3 = new string("s3");
+	shared_ptr<string> ps3(s3);
+
+	cout << (ps1.get()) << endl;	//033AEB48
+	cout << ps3.get() << endl;	//033B2C50
+	swap(ps1, ps3);	//交换所拥有的对象
+	cout << (ps1.get())<<endl;	//033B2C50
+	cout << ps3.get() << endl;	//033AEB48
+
+	cout << ps1.use_count()<<endl;	//1
+	cout << ps2.use_count() << endl;	//2
+	ps2 = ps1;
+	cout << ps1.use_count()<<endl;	//2
+	cout << ps2.use_count() << endl;	//2
+	ps1.reset();	//放弃ps1的拥有权，引用计数的减少
+	cout << ps1.use_count()<<endl;	//0
+	cout << ps2.use_count()<<endl;	//1
+}
+
+weak_ptr：
+1.不控制对象的生命周期的指针，不增加对象的引用计数
+2.配合协助shared_ptr的工作，解决互相死锁的问题，指向shared_ptr管理的对象
+
+
